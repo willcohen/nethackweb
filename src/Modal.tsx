@@ -1,4 +1,10 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useRef } from "react";
+
+// Stack of mounted modal ids in mount order; the last entry is the topmost
+// dialog. Used so a single browser back press only fires the topmost modal's
+// onClose (instead of every nested modal's listener firing in parallel).
+const modalStack: number[] = [];
+let nextModalId = 0;
 
 export const Modal = ({
 	title,
@@ -9,15 +15,25 @@ export const Modal = ({
 	onClose: () => void;
 	children: ReactNode;
 }) => {
+	// Stash onClose in a ref so the effect can have empty deps. Parents pass
+	// a fresh closure on every render; without this the effect would tear
+	// down and re-build on every re-render, flapping history.back/pushState.
+	const onCloseRef = useRef(onClose);
+	onCloseRef.current = onClose;
 	useEffect(() => {
+		const id = nextModalId++;
+		modalStack.push(id);
 		history.pushState(null, "");
-		const onPopState = () => onClose();
+		const onPopState = () => {
+			if (modalStack[modalStack.length - 1] !== id) return;
+			onCloseRef.current();
+		};
 		// Capture-phase Escape so NetHack's window listeners don't
 		// intercept the close key while the modal is open.
 		const onKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
+			if (e.key === "Escape" && modalStack[modalStack.length - 1] === id) {
 				e.stopPropagation();
-				onClose();
+				onCloseRef.current();
 			}
 		};
 		window.addEventListener("popstate", onPopState);
@@ -25,8 +41,10 @@ export const Modal = ({
 		return () => {
 			window.removeEventListener("popstate", onPopState);
 			window.removeEventListener("keydown", onKeyDown, { capture: true });
+			const idx = modalStack.indexOf(id);
+			if (idx !== -1) modalStack.splice(idx, 1);
 		};
-	}, [onClose]);
+	}, []);
 
 	return (
 		<div className="modal-backdrop" onClick={onClose}>
