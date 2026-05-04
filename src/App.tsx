@@ -13,6 +13,7 @@ import { StatusWindow } from "./StatusWindow";
 import { MobileInputs } from "./MobileInput";
 import { CopyrightWindow } from "./CopyrightWindow";
 import { SettingsDialog } from "./SettingsDialog";
+import { loadSettings, saveSettings, Settings } from "./settings";
 
 const Window = ({ window_ }: { window_: NHWindow }) => {
 	if (!window_.displayed) {
@@ -84,6 +85,14 @@ export const App = () => {
 	const [state, onInput] = useNethack();
 	const [isNumLock, setIsNumLock] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [settings, setSettings] = useState<Settings>(loadSettings);
+	const updateSettings = (patch: Partial<Settings>) => {
+		setSettings((prev) => {
+			const next = { ...prev, ...patch };
+			saveSettings(next);
+			return next;
+		});
+	};
 	return (
 		<OnInputContext.Provider value={onInput}>
 			<main>
@@ -97,7 +106,10 @@ export const App = () => {
 				</div>
 				{state.prompt && <Prompt prompt={state.prompt} />}
 				<TemporaryWindows state={state} />
-				<StatusWindow status={state.status} />
+				<StatusWindow
+					status={state.status}
+					compactStatus={settings.compactStatus}
+				/>
 				<MobileInputs
 					triggerOnPointerDown={state.prompt?.type == "poskey"}
 					isNumLock={isNumLock}
@@ -111,7 +123,12 @@ export const App = () => {
 					⚙
 				</button>
 				{showSettings && (
-					<SettingsDialog onClose={() => setShowSettings(false)} />
+					<SettingsDialog
+						settings={settings}
+						updateSettings={updateSettings}
+						setSettings={setSettings}
+						onClose={() => setShowSettings(false)}
+					/>
 				)}
 			</main>
 		</OnInputContext.Provider>

@@ -324,6 +324,17 @@ kbd {
 	border: 0.5px solid grey;
 	padding: var(--padding);
 	min-height: 3lh;
+
+	&.compact {
+		column-gap: 1ch;
+		row-gap: 1px;
+		padding: 2px var(--padding);
+		min-height: 0;
+
+		& > span, & > b {
+			white-space: nowrap;
+		}
+	}
 }
 
 /** Mobile inputs */

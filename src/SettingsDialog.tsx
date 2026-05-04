@@ -1,19 +1,22 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import nethackrcContents from "./nethackrc.txt?raw";
 import { Modal } from "./Modal";
-import { loadSettings, saveSettings, Settings } from "./settings";
+import { loadSettings, Settings } from "./settings";
 
 type SubModal = null | "rc" | "reset-rc" | "reset-all";
 
-export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
-	const [settings, setSettings] = useState<Settings>(() => loadSettings());
+export const SettingsDialog = ({
+	settings,
+	updateSettings,
+	setSettings,
+	onClose,
+}: {
+	settings: Settings;
+	updateSettings: (patch: Partial<Settings>) => void;
+	setSettings: Dispatch<SetStateAction<Settings>>;
+	onClose: () => void;
+}) => {
 	const [sub, setSub] = useState<SubModal>(null);
-
-	const update = (patch: Partial<Settings>) => {
-		const next = { ...settings, ...patch };
-		setSettings(next);
-		saveSettings(next);
-	};
 
 	return (
 		<Modal title="Settings" onClose={onClose}>
@@ -25,7 +28,7 @@ export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
 					id="settings-playername"
 					type="text"
 					value={settings.playerName}
-					onChange={(e) => update({ playerName: e.target.value })}
+					onChange={(e) => updateSettings({ playerName: e.target.value })}
 				/>
 				<div className="settings-note">
 					Used for new games. Existing saves keep their original name.
@@ -38,7 +41,7 @@ export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
 						type="checkbox"
 						checked={settings.compactStatus}
 						onChange={(e) =>
-							update({ compactStatus: e.target.checked })
+							updateSettings({ compactStatus: e.target.checked })
 						}
 					/>{" "}
 					Compact status bar
@@ -51,7 +54,7 @@ export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
 						type="checkbox"
 						checked={settings.saveOnHide}
 						onChange={(e) =>
-							update({ saveOnHide: e.target.checked })
+							updateSettings({ saveOnHide: e.target.checked })
 						}
 					/>{" "}
 					Save when app loses focus
@@ -71,7 +74,7 @@ export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
 							name="shiftMode"
 							value={mode}
 							checked={settings.shiftMode === mode}
-							onChange={() => update({ shiftMode: mode })}
+							onChange={() => updateSettings({ shiftMode: mode })}
 						/>{" "}
 						{mode}
 					</label>
@@ -98,7 +101,7 @@ export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
 						className="settings-rc-textarea"
 						value={settings.nethackrc}
 						onChange={(e) =>
-							update({ nethackrc: e.target.value })
+							updateSettings({ nethackrc: e.target.value })
 						}
 					/>
 					<div className="settings-note">
@@ -115,7 +118,7 @@ export const SettingsDialog = ({ onClose }: { onClose: () => void }) => {
 					</p>
 					<button
 						onClick={() => {
-							update({ nethackrc: nethackrcContents });
+							updateSettings({ nethackrc: nethackrcContents });
 							setSub(null);
 						}}
 					>
