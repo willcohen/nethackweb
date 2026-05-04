@@ -193,8 +193,8 @@ const MobileDirInput = ({
 			</div>
 			<svg
 				version="1.1"
-				width={200}
-				height={200}
+				width="100%"
+				height="100%"
 				viewBox="-200 -200 400 400"
 			>
 				{inputs.map((input, i) => (

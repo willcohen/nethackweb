@@ -13,6 +13,8 @@ import { StatusWindow } from "./StatusWindow";
 import { MobileInputs } from "./MobileInput";
 import { CopyrightWindow } from "./CopyrightWindow";
 import { SettingsDialog } from "./SettingsDialog";
+import { Modal } from "./Modal";
+import { Footer } from "./Footer";
 import { loadSettings, saveSettings, Settings } from "./settings";
 
 const Window = ({ window_ }: { window_: NHWindow }) => {
@@ -87,6 +89,7 @@ export const App = () => {
 	const [state, onInput] = useNethack();
 	const [isNumLock, setIsNumLock] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
+	const [showInfo, setShowInfo] = useState(false);
 	const [settings, setSettings] = useState<Settings>(loadSettings);
 	const updateSettings = (patch: Partial<Settings>) => {
 		setSettings((prev) => {
@@ -167,6 +170,18 @@ export const App = () => {
 				>
 					⚙
 				</button>
+				<button
+					className="info-button"
+					aria-label="About"
+					onClick={() => setShowInfo(true)}
+				>
+					ⓘ
+				</button>
+				{showInfo && (
+					<Modal title="About" onClose={() => setShowInfo(false)}>
+						<Footer />
+					</Modal>
+				)}
 				{state.gameEnded && (
 					<button
 						className="play-again-button"

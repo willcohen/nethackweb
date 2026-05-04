@@ -3,6 +3,9 @@
 	color: var(--fg);
 	font-family: "DejaVu Mono";
 	--padding: 7px;
+	--cell-size: 40px;
+	--dir-size: 200px;
+	--main-gap: 8px;
 	user-select: none;
 	overflow: hidden;
 	overscroll-behavior: none;
@@ -46,10 +49,13 @@ body {
 	max-height: 100dvh;
 	width: min(100vw, calc(80ch + 4 * var(--padding)));
 	padding: var(--padding);
+	padding-top: max(var(--padding), env(safe-area-inset-top));
+	padding-bottom: max(var(--padding), env(safe-area-inset-bottom));
+	padding-left: max(var(--padding), env(safe-area-inset-left));
+	padding-right: max(var(--padding), env(safe-area-inset-right));
 	position: relative;
 	white-space-collapse: preserve;
 	justify-items: stretch;
-	margin-bottom: 10px;
 }
 
 /** Scrollbars */
@@ -345,12 +351,13 @@ kbd {
 	align-items: center;
 	justify-content: space-around;
 	padding: var(--padding) 0;
-	gap: 8px;
+	gap: var(--main-gap);
 
 	.shift-button {
-		min-width: 40px;
-		height: 40px;
-		padding: 0 6px;
+		min-width: var(--cell-size);
+		width: var(--cell-size);
+		height: var(--cell-size);
+		padding: 0;
 		border: 1px solid #7474ff;
 		border-radius: 5px;
 		background-color: #1e0c33;
@@ -359,6 +366,7 @@ kbd {
 		cursor: pointer;
 		user-select: none;
 		font-size: 1.2em;
+		touch-action: manipulation;
 
 		&.armed {
 			background-color: #225;
@@ -374,8 +382,8 @@ kbd {
 
 	.shortcut-inputs {
 		display: grid;
-		grid: repeat(4, 40px) / repeat(3, 40px);
-		gap: 13.3px;
+		grid: repeat(4, var(--cell-size)) / repeat(3, var(--cell-size));
+		gap: calc(var(--cell-size) / 3);
 	}
 
 	.direction_input {
@@ -383,18 +391,19 @@ kbd {
 		--inactive-bg-color: #020;
 		--active-bg-color: #252;
 		position: relative;
-		width: 200px;
-		height: 200px;
+		width: var(--dir-size);
+		height: var(--dir-size);
 		display: grid;
 		place-items: center;
 
 		.label {
 			z-index: 2;
 			position: absolute;
-			font-size: 15px;
+			font-size: calc(var(--dir-size) * 0.075);
 			white-space: nowrap;
 			pointer-events: none;
-			transform: rotate(var(--angle)) translate(0, -65px)
+			transform: rotate(var(--angle))
+				translate(0, calc(var(--dir-size) * -0.325))
 				rotate(calc(360deg - var(--angle)));
 		}
 
@@ -402,12 +411,12 @@ kbd {
 			position: absolute;
 			display: grid;
 			place-items: center;
-			width: 60px;
-			height: 60px;
+			width: calc(var(--dir-size) * 0.3);
+			height: calc(var(--dir-size) * 0.3);
 			border-radius: 100%;
 			background: #1e0c33;
 			cursor: pointer;
-			font-size: 15px;
+			font-size: calc(var(--dir-size) * 0.075);
 
 			@media (hover: hover) {
 				&:hover {
@@ -422,7 +431,7 @@ kbd {
 
 		.corner {
 			--offset: -0.5px;
-			--size: 105px;
+			--size: calc(var(--dir-size) * 0.525);
 			position: absolute;
 			width: calc(var(--size) - var(--offset));
 			height: calc(var(--size) - var(--offset));
@@ -435,7 +444,8 @@ kbd {
 			border-radius: 10px;
 			flex-shrink: 0;
 			cursor: pointer;
-			padding: 15px;
+			padding: calc(var(--dir-size) * 0.075);
+			font-size: calc(var(--dir-size) * 0.075);
 			box-sizing: border-box;
 
 			@media (hover: hover) {
@@ -547,9 +557,9 @@ kbd {
 }
 
 .simple_input {
-	min-width: 40px;
-	width: 40px;
-	height: 40px;
+	min-width: var(--cell-size);
+	width: var(--cell-size);
+	height: var(--cell-size);
 	--border-color: #7474ff;
 	--inactive-bg-color: #1e0c33;
 	--active-bg-color: #225;
@@ -613,10 +623,10 @@ kbd {
 	}
 }
 
-.gear-button {
+.gear-button,
+.info-button {
 	position: fixed;
-	top: var(--padding);
-	right: var(--padding);
+	top: max(var(--padding), env(safe-area-inset-top));
 	z-index: 11;
 	width: 32px;
 	height: 32px;
@@ -633,6 +643,14 @@ kbd {
 	&:hover {
 		background-color: #333a;
 	}
+}
+
+.gear-button {
+	right: max(var(--padding), env(safe-area-inset-right));
+}
+
+.info-button {
+	right: calc(max(var(--padding), env(safe-area-inset-right)) + 40px);
 }
 
 .modal-backdrop {
@@ -744,7 +762,9 @@ kbd {
 }
 
 .settings-grid-slot {
+	width: 42px;
 	height: 36px;
+	box-sizing: border-box;
 	background-color: #1e0c33;
 	color: var(--fg);
 	border: 1px solid #7474ff;
@@ -752,13 +772,13 @@ kbd {
 	font: inherit;
 	font-size: 0.85em;
 	cursor: pointer;
-	display: grid;
-	place-items: center;
 	overflow: hidden;
 	padding: 0;
 	appearance: none;
 	-webkit-appearance: none;
 	text-align: center;
+	text-align-last: center;
+	line-height: 34px;
 
 	&:active {
 		background-color: #225;
