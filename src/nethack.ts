@@ -14,7 +14,7 @@ import {
 	Condition,
 } from "../lib/nethackInterface";
 
-import nethackrcContents from "./nethackrc.txt?raw";
+import { loadSettings } from "./settings";
 
 export type NHMenuEntry = {
 	glyphInfo: GlyphInfo;
@@ -374,10 +374,12 @@ export class NetHack implements NetHackInterface {
 		});
 	}
 	constructor(public onChange: () => void) {
-		this.start("Adventurer");
+		const settings = loadSettings();
+		this.nethackrc = settings.nethackrc;
+		this.start(settings.playerName);
 	}
 	isLoading = true;
-	nethackrc = nethackrcContents;
+	nethackrc: string;
 	currentWindowId = 0;
 	center = { x: 0, y: 0 };
 	messageWindow?: NHMessageWindow;
@@ -693,8 +695,12 @@ export class NetHack implements NetHackInterface {
 		return;
 	}
 	async askname() {
-		console.error("Not implemented (askname)");
-		return "wizard";
+		// NetHack calls askname when -u was rejected (e.g., name in `genericusers`
+		// from sysconf, default: play, player, game, games, nethack, nethacker,
+		// ec2-user). The shim's C signature is void, so a return value is discarded;
+		// the contract is to write svp.plname directly. Without this write,
+		// plnamesuffix() loops forever calling askname.
+		nethackGlobal.globals.svp.plname = loadSettings().playerName;
 	}
 	cliparound(x: number, y: number) {
 		if (this.mapWindow) {
