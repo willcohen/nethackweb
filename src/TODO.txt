@@ -1,4 +1,3 @@
-- restarting
 - less hacky React rendering
 - separate library out
 - be able to add a count when dropping stuff

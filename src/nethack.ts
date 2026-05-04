@@ -383,6 +383,7 @@ export class NetHack implements NetHackInterface {
 	}
 	isLoading = true;
 	savedAndExited = false;
+	gameEnded = false;
 	nethackrc: string;
 	currentWindowId = 0;
 	center = { x: 0, y: 0 };
@@ -632,7 +633,13 @@ export class NetHack implements NetHackInterface {
 		this.messageWindow?.putStr(str, "ATR_NONE");
 		this.mapWindow?.clear();
 		this.status.displayed = false;
-		this.savedAndExited = true;
+		// `eofPending` is the save-on-hide path; anything else here is a normal
+		// game end (death, quit, escape, ascend).
+		if (this.eofPending) {
+			this.savedAndExited = true;
+		} else {
+			this.gameEnded = true;
+		}
 		this.onChange();
 	}
 	createNhwindow(type: WinType) {

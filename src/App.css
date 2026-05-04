@@ -590,6 +590,29 @@ kbd {
 
 /** Settings */
 
+.play-again-button {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 11;
+	padding: 12px 32px;
+	font: inherit;
+	font-size: 1.25em;
+	background-color: #225;
+	color: inherit;
+	border: 1px solid #7474ff;
+	border-radius: 5px;
+	cursor: pointer;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+	@media (hover: hover) {
+		&:hover {
+			background-color: #336;
+		}
+	}
+}
+
 .gear-button {
 	position: fixed;
 	top: var(--padding);

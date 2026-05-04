@@ -167,6 +167,14 @@ export const App = () => {
 				>
 					⚙
 				</button>
+				{state.gameEnded && (
+					<button
+						className="play-again-button"
+						onClick={() => window.location.reload()}
+					>
+						Play again
+					</button>
+				)}
 				{showSettings && (
 					<SettingsDialog
 						settings={settings}
