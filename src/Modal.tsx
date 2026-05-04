@@ -12,9 +12,8 @@ export const Modal = ({
 	useEffect(() => {
 		history.pushState(null, "");
 		const onPopState = () => onClose();
-		// Capture-phase Escape so NetHack's keydown listeners on window don't
-		// also act on it while the modal is open. Other keys flow through so
-		// inputs in the modal body keep working.
+		// Capture-phase Escape so NetHack's window listeners don't
+		// intercept the close key while the modal is open.
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				e.stopPropagation();
@@ -31,12 +30,13 @@ export const Modal = ({
 
 	return (
 		<div className="modal-backdrop" onClick={onClose}>
-			<div
-				className="modal"
-				onClick={(e) => e.stopPropagation()}
-				role="dialog"
-				aria-label={title}
-			>
+		<div
+			className="modal"
+			onClick={(e) => e.stopPropagation()}
+			onKeyDown={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-label={title}
+		>
 				<div className="modal-header">
 					<h2>{title}</h2>
 					<button

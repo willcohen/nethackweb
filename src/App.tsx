@@ -114,6 +114,8 @@ export const App = () => {
 					triggerOnPointerDown={state.prompt?.type == "poskey"}
 					isNumLock={isNumLock}
 					setIsNumLock={setIsNumLock}
+					gridButtons={settings.gridButtons}
+					scrollButtons={settings.scrollButtons}
 				/>
 				<button
 					className="gear-button"

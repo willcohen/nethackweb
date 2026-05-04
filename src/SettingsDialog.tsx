@@ -2,8 +2,17 @@ import { Dispatch, SetStateAction, useState } from "react";
 import nethackrcContents from "./nethackrc.txt?raw";
 import { Modal } from "./Modal";
 import { loadSettings, Settings } from "./settings";
+import {
+	INPUT_CATALOG,
+	INPUT_CATALOG_IDS,
+	ButtonDef,
+	catalogButtonChar,
+} from "./MobileInput";
 
 type SubModal = null | "rc" | "reset-rc" | "reset-all";
+
+const catalogLabel = (id: string) =>
+	INPUT_CATALOG.find((b: ButtonDef) => b.id === id)?.label ?? id;
 
 export const SettingsDialog = ({
 	settings,
@@ -17,6 +26,20 @@ export const SettingsDialog = ({
 	onClose: () => void;
 }) => {
 	const [sub, setSub] = useState<SubModal>(null);
+
+	const toggleScroll = (id: string) => {
+		const present = settings.scrollButtons.includes(id);
+		if (present) {
+			updateSettings({
+				scrollButtons: settings.scrollButtons.filter((b) => b !== id),
+			});
+		} else {
+			const inserted = [...settings.scrollButtons, id].sort(
+				(a, b) => INPUT_CATALOG_IDS.indexOf(a) - INPUT_CATALOG_IDS.indexOf(b),
+			);
+			updateSettings({ scrollButtons: inserted });
+		}
+	};
 
 	return (
 		<Modal title="Settings" onClose={onClose}>
@@ -82,6 +105,46 @@ export const SettingsDialog = ({
 				<div className="settings-note">
 					Sticky: tap once, the next direction sends uppercase. Hold:
 					press and hold while tapping a direction.
+				</div>
+			</div>
+
+			<div className="settings-row">
+				<div className="settings-label">Grid buttons</div>
+				<div className="settings-grid-slots">
+					{settings.gridButtons.map((id, i) => (
+						<select
+							key={i}
+							className="settings-grid-slot"
+							value={id}
+							onChange={(e) => {
+								const updated = [...settings.gridButtons];
+								updated[i] = e.target.value;
+								updateSettings({ gridButtons: updated });
+							}}
+						>
+							{INPUT_CATALOG_IDS.map((cid) => (
+								<option key={cid} value={cid}>
+									{catalogButtonChar(cid)}
+								</option>
+							))}
+						</select>
+					))}
+				</div>
+			</div>
+
+			<div className="settings-row">
+				<div className="settings-label">Scroll buttons</div>
+				<div className="settings-toolbar-grid">
+					{INPUT_CATALOG_IDS.map((id) => (
+						<label key={id}>
+							<input
+								type="checkbox"
+								checked={settings.scrollButtons.includes(id)}
+								onChange={() => toggleScroll(id)}
+							/>{" "}
+							{catalogLabel(id)}
+						</label>
+					))}
 				</div>
 			</div>
 

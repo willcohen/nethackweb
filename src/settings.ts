@@ -6,7 +6,8 @@ export type Settings = {
 	nethackrc: string;
 	compactStatus: boolean;
 	saveOnHide: boolean;
-	toolbarButtons: string[];
+	gridButtons: string[];
+	scrollButtons: string[];
 	shiftMode: "off" | "sticky" | "hold";
 };
 
@@ -21,7 +22,18 @@ const defaults = (): Settings => ({
 	nethackrc: nethackrcContents,
 	compactStatus: window.matchMedia("(max-width: 600px)").matches,
 	saveOnHide: true,
-	toolbarButtons: ["space", "search", "look"],
+	gridButtons: [
+		"look", "cast", "fire",
+		"run", "drop-type", "inven",
+		"rush", "drop", "kick",
+		"travel", "loot",
+	],
+	scrollButtons: [
+		"extcmd", "save", "close", "eat", "apply", "zap", "quaff", "read",
+		"throw", "move", "fight", "wield", "wear", "swap", "two-weapon",
+		"quiver", "put-on", "takeoff", "remove", "open", "inven-type",
+		"help", "see-all", "discoveries", "options", "attributes", "esc",
+	],
 	shiftMode: "sticky",
 });
 
