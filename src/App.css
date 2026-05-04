@@ -340,11 +340,37 @@ kbd {
 /** Mobile inputs */
 
 .main-inputs {
-	display: grid;
-	grid: auto / auto auto;
-	padding: var(--padding) 0;
-	place-items: center;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
 	justify-content: space-around;
+	padding: var(--padding) 0;
+	gap: 8px;
+
+	.shift-button {
+		min-width: 40px;
+		height: 40px;
+		padding: 0 6px;
+		border: 1px solid #7474ff;
+		border-radius: 5px;
+		background-color: #1e0c33;
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		user-select: none;
+		font-size: 1.2em;
+
+		&.armed {
+			background-color: #225;
+			border-color: #aaaaff;
+		}
+
+		&.locked {
+			background-color: #336;
+			border-color: #ddddff;
+			box-shadow: inset 0 0 0 1px #ddddff;
+		}
+	}
 
 	.shortcut-inputs {
 		display: grid;

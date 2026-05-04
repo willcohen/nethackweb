@@ -123,22 +123,22 @@ export const SettingsDialog = ({
 			</div>
 
 			<div className="settings-row">
-				<div className="settings-label">Shift behavior</div>
-				{(["off", "sticky", "hold"] as const).map((mode) => (
-					<label key={mode} className="settings-radio">
-						<input
-							type="radio"
-							name="shiftMode"
-							value={mode}
-							checked={settings.shiftMode === mode}
-							onChange={() => updateSettings({ shiftMode: mode })}
-						/>{" "}
-						{mode}
-					</label>
-				))}
+				<label>
+					<input
+						type="checkbox"
+						checked={settings.shiftMode === "on"}
+						onChange={(e) =>
+							updateSettings({
+								shiftMode: e.target.checked ? "on" : "off",
+							})
+						}
+					/>{" "}
+					Show shift button
+				</label>
 				<div className="settings-note">
-					Sticky: tap once, the next direction sends uppercase. Hold:
-					press and hold while tapping a direction.
+					Tap once to arm shift for one direction. Double-tap to lock
+					(caps lock); tap again to release. Hardware Shift on a
+					keyboard always works regardless.
 				</div>
 			</div>
 

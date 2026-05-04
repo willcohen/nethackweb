@@ -117,6 +117,7 @@ export const App = () => {
 					gridButtons={settings.gridButtons}
 					scrollButtons={settings.scrollButtons}
 					customButtons={settings.customButtons}
+					shiftMode={settings.shiftMode}
 				/>
 				<button
 					className="gear-button"

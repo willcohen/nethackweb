@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useOnInput } from "./useNethack";
 import { ESC } from "./nethack";
-import type { CustomButton } from "./settings";
+import type { CustomButton, Settings } from "./settings";
 
 type Input = string | { input: string; label: string };
 
@@ -168,23 +168,27 @@ const SectorSVG = ({
 
 const MobileDirInput = ({
 	triggerOnPointerDown,
+	dispatchDir,
+	shiftActive,
 }: {
 	triggerOnPointerDown: boolean;
+	dispatchDir: (input: string) => void;
+	shiftActive: boolean;
 }) => {
-	const onInput = useOnInput();
 	const inputs = "kulnjbhy".split("");
+	const showLetter = (c: string) => (shiftActive ? c.toUpperCase() : c);
 	return (
 		<div className="direction_input">
-			<div className="corner top left" onClick={() => onInput("<")}>
+			<div className="corner top left" onClick={() => dispatchDir("<")}>
 				{"<"}
 			</div>
-			<div className="corner bottom left" onClick={() => onInput(">")}>
+			<div className="corner bottom left" onClick={() => dispatchDir(">")}>
 				{">"}
 			</div>
-			<div className="corner top right" onClick={() => onInput("s")}>
+			<div className="corner top right" onClick={() => dispatchDir("s")}>
 				{"s"}
 			</div>
-			<div className="corner bottom right" onClick={() => onInput(",")}>
+			<div className="corner bottom right" onClick={() => dispatchDir(",")}>
 				{","}
 			</div>
 			<svg
@@ -198,7 +202,7 @@ const MobileDirInput = ({
 						key={i}
 						start={i * 45 - 22.5}
 						end={(i + 1) * 45 - 22.5}
-						handleActivate={() => onInput(input)}
+						handleActivate={() => dispatchDir(input)}
 						triggerOnPointerDown={triggerOnPointerDown}
 					/>
 				))}
@@ -206,7 +210,7 @@ const MobileDirInput = ({
 			<div
 				className="center"
 				style={{ touchAction: "none" }}
-				onClick={() => onInput(".")}
+				onClick={() => dispatchDir(".")}
 			>
 				·
 			</div>
@@ -218,7 +222,7 @@ const MobileDirInput = ({
 						"--angle": `${i * 45}deg`,
 					}}
 				>
-					{input}
+					{showLetter(input)}
 				</div>
 			))}
 		</div>
@@ -232,6 +236,7 @@ export const MobileInputs = ({
 	gridButtons,
 	scrollButtons,
 	customButtons,
+	shiftMode,
 }: {
 	triggerOnPointerDown: boolean;
 	isNumLock: boolean;
@@ -239,10 +244,38 @@ export const MobileInputs = ({
 	gridButtons: string[];
 	scrollButtons: string[];
 	customButtons: CustomButton[];
+	shiftMode: Settings["shiftMode"];
 }) => {
 	const onInput = useOnInput();
 	const gridInputs = resolveButtons(gridButtons, customButtons);
 	const scrollInputs = resolveButtons(scrollButtons, customButtons);
+	const [shiftState, setShiftState] = useState<"idle" | "armed" | "locked">(
+		"idle",
+	);
+	const lastShiftTapRef = useRef(0);
+	const shiftActive = shiftState !== "idle";
+
+	const handleShiftTap = () => {
+		const now = Date.now();
+		setShiftState((prev) => {
+			if (prev === "idle") {
+				lastShiftTapRef.current = now;
+				return "armed";
+			}
+			if (prev === "armed") {
+				if (now - lastShiftTapRef.current < 350) return "locked";
+				return "idle";
+			}
+			return "idle";
+		});
+	};
+
+	const dispatchDir = (input: string) => {
+		const isDir = "hjklyubn".includes(input);
+		const out = shiftActive && isDir ? input.toUpperCase() : input;
+		onInput(out);
+		if (shiftState === "armed" && isDir) setShiftState("idle");
+	};
 
 	const dispatch = (rb: ResolvedButton) => {
 		if (rb.action.kind === "input") {
@@ -300,7 +333,25 @@ export const MobileInputs = ({
 						{"123"}
 					</div>
 				</div>
-				<MobileDirInput triggerOnPointerDown={triggerOnPointerDown} />
+				{shiftMode === "on" && (
+					<div
+						className={
+							"shift-button" +
+							(shiftState === "armed" ? " armed" : "") +
+							(shiftState === "locked" ? " locked" : "")
+						}
+						aria-label="Shift"
+						aria-pressed={shiftActive}
+						onClick={handleShiftTap}
+					>
+						{shiftState === "locked" ? "⇑" : "↑"}
+					</div>
+				)}
+				<MobileDirInput
+					triggerOnPointerDown={triggerOnPointerDown}
+					dispatchDir={dispatchDir}
+					shiftActive={shiftActive}
+				/>
 			</div>
 			<div
 				ref={scrollRef}

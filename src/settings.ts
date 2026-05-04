@@ -15,7 +15,7 @@ export type Settings = {
 	gridButtons: string[];
 	scrollButtons: string[];
 	customButtons: CustomButton[];
-	shiftMode: "off" | "sticky" | "hold";
+	shiftMode: "off" | "on";
 };
 
 export const newCustomButtonId = (): string => {
@@ -50,15 +50,22 @@ const defaults = (): Settings => ({
 		"help", "see-all", "discoveries", "options", "attributes", "esc",
 	],
 	customButtons: [],
-	shiftMode: "sticky",
+	shiftMode:
+		window.matchMedia("(pointer: coarse)").matches ? "on" : "off",
 });
 
 export const loadSettings = (): Settings => {
 	const raw = localStorage.getItem(STORAGE_KEY);
 	if (!raw) return defaults();
 	try {
-		const stored = JSON.parse(raw) as Partial<Settings>;
-		return { ...defaults(), ...stored, version: 1 };
+		const stored = JSON.parse(raw) as Partial<Settings> & {
+			shiftMode?: string;
+		};
+		const merged = { ...defaults(), ...stored, version: 1 } as Settings;
+		if (stored.shiftMode && stored.shiftMode !== "off") {
+			merged.shiftMode = "on";
+		}
+		return merged;
 	} catch {
 		return defaults();
 	}
