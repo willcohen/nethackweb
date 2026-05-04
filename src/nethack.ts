@@ -340,7 +340,10 @@ export class Status {
 export type Input =
 	| string
 	| { submit: true }
+	| { eof: true }
 	| { x: number; y: number; mod: number };
+
+export const EOF = { eof: true } as const;
 
 type NHPosKeyPrompt = {
 	type: "poskey";
@@ -379,6 +382,7 @@ export class NetHack implements NetHackInterface {
 		this.start(settings.playerName);
 	}
 	isLoading = true;
+	savedAndExited = false;
 	nethackrc: string;
 	currentWindowId = 0;
 	center = { x: 0, y: 0 };
@@ -393,9 +397,15 @@ export class NetHack implements NetHackInterface {
 	resolveInput: (input: Input) => void = () => {};
 	waitingForInput = false;
 	inputQueue: Input[] = [];
+	eofPending = false;
 
 	onInput(input: Input | Input[]) {
 		const items = Array.isArray(input) ? input : [input];
+		for (const item of items) {
+			if (typeof item === "object" && "eof" in item) {
+				this.eofPending = true;
+			}
+		}
 		this.inputQueue.push(...items);
 		this.drainQueue();
 	}
@@ -409,6 +419,7 @@ export class NetHack implements NetHackInterface {
 
 	async getInput(): Promise<Input> {
 		this.onChange();
+		if (this.eofPending) return { eof: true };
 		if (this.inputQueue.length > 0) {
 			return this.inputQueue.shift() as Input;
 		}
@@ -459,31 +470,34 @@ export class NetHack implements NetHackInterface {
 
 	async getChar(): Promise<string> {
 		const r = await this.getInput();
-		if (typeof r == "string") {
-			return r;
-		} else {
-			return await this.getChar();
-		}
+		if (typeof r == "string") return r;
+		if ("eof" in r) return ESC;
+		return await this.getChar();
 	}
 
 	async getStr() {
 		const r = await this.getInput();
-		if (typeof r == "string" || "submit" in r) {
-			return r;
-		} else {
-			return await this.getChar();
-		}
+		if (typeof r == "string") return r;
+		if ("eof" in r) return ESC;
+		if ("submit" in r) return r;
+		return await this.getChar();
 	}
 
 	async getCharOrPos(): Promise<
-		string | { x: number; y: number; mod: number }
+		string | number | { x: number; y: number; mod: number }
 	> {
 		const r = await this.getInput();
 		if (typeof r == "object" && "submit" in r) {
 			return await this.getCharOrPos();
+		} else if (typeof r == "object" && "eof" in r) {
+			return -1;
 		} else {
 			return r;
 		}
+	}
+
+	triggerEof() {
+		this.onInput({ eof: true });
 	}
 
 	// A. Low-level routines
@@ -506,6 +520,7 @@ export class NetHack implements NetHackInterface {
 	}
 	getNhEvent() {}
 	async nhgetch() {
+		if (this.eofPending) return -1;
 		console.error("Not implemented (nhgetch)");
 		return "";
 	}
@@ -617,6 +632,7 @@ export class NetHack implements NetHackInterface {
 		this.messageWindow?.putStr(str, "ATR_NONE");
 		this.mapWindow?.clear();
 		this.status.displayed = false;
+		this.savedAndExited = true;
 		this.onChange();
 	}
 	createNhwindow(type: WinType) {

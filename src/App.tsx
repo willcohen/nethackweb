@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "@fontsource/dejavu-mono";
 
 import "./App.css";
@@ -71,9 +71,11 @@ const TemporaryWindows = ({ state }: { state: NetHack }) => {
 };
 
 export const App = () => {
+	const sentEofRef = useRef(false);
 	useEffect(() => {
 		history.pushState(null, "");
 		const callback = (e: BeforeUnloadEvent) => {
+			if (sentEofRef.current) return;
 			e.preventDefault();
 		};
 		window.addEventListener("beforeunload", callback);
@@ -93,6 +95,45 @@ export const App = () => {
 			return next;
 		});
 	};
+	// Save-on-hide simulates a SIGHUP without exporting any new C symbol.
+	// The chain: visibilitychange hidden -> onInput({eof:true}) sets a sticky
+	// flag in NetHack -> nh_poskey/nhgetch wrappers return -1 to wasm ->
+	// readchar_core hits EOF and calls hangup(0) -> SAFERHANGUP defers, but
+	// the moveloop's done_hup check at allmain.c:182 calls end_of_input the
+	// next iteration, which runs dosave0 and exit_nhwindows. Our exit_nhwindows
+	// shim awaits FS.syncfs to persist /save/ to IDBFS, then sets
+	// savedAndExited so the second effect can reload once the user returns.
+	useEffect(() => {
+		const handler = () => {
+			if (
+				document.visibilityState === "hidden" &&
+				settings.saveOnHide &&
+				!sentEofRef.current
+			) {
+				sentEofRef.current = true;
+				onInput({ eof: true });
+			}
+		};
+		document.addEventListener("visibilitychange", handler);
+		return () => document.removeEventListener("visibilitychange", handler);
+	}, [settings.saveOnHide, onInput]);
+
+	// Wait for the save to actually persist before reloading; reloading
+	// straight from visibilitychange races the in-flight IDBFS write.
+	useEffect(() => {
+		if (!sentEofRef.current || !state.savedAndExited) return;
+		if (document.visibilityState === "visible") {
+			window.location.reload();
+			return;
+		}
+		const handler = () => {
+			if (document.visibilityState === "visible") {
+				window.location.reload();
+			}
+		};
+		document.addEventListener("visibilitychange", handler);
+		return () => document.removeEventListener("visibilitychange", handler);
+	}, [state.savedAndExited]);
 	return (
 		<OnInputContext.Provider value={onInput}>
 			<main>

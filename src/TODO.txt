@@ -3,4 +3,3 @@
 - separate library out
 - be able to add a count when dropping stuff
 - doprev_message/click message window: full screen it
-- auto save on page hide (?)

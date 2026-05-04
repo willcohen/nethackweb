@@ -305,8 +305,10 @@ export type NetHackInterface = {
 	putstr: (windowId: number, attr: Attr, str: string) => void;
 	putmixed: (windowId: number, attr: Attr, str: string) => void;
 	getNhEvent: () => void;
-	nhgetch: () => Promise<string>;
-	nhPosKey: () => Promise<string | { x: number; y: number; mod: number }>;
+	nhgetch: () => Promise<string | number>;
+	nhPosKey: () => Promise<
+		string | number | { x: number; y: number; mod: number }
+	>;
 
 	// B. High-level routines
 	printGlyph: (
@@ -427,7 +429,10 @@ const convertMethods = (i: NetHackInterface, syncFs: () => Promise<void>) => ({
 	putmixed: (windowId: number, attr: number, str: string) =>
 		i.putmixed(windowId, decodeAttr(attr), str),
 	getNhEvent: () => i.getNhEvent(),
-	nhgetch: async (): Promise<number> => (await i.nhgetch()).charCodeAt(0),
+	nhgetch: async (): Promise<number> => {
+		const r = await i.nhgetch();
+		return typeof r === "number" ? r : r.charCodeAt(0);
+	},
 	nhPoskey: async (
 		xPtr: number,
 		yPtr: number,
@@ -437,6 +442,8 @@ const convertMethods = (i: NetHackInterface, syncFs: () => Promise<void>) => ({
 		const result = await i.nhPosKey();
 		if (typeof result == "string") {
 			return result.charCodeAt(0);
+		} else if (typeof result == "number") {
+			return result;
 		} else {
 			setValue(xPtr, result.x, "i16");
 			setValue(yPtr, result.y, "i16");

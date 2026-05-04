@@ -114,11 +114,12 @@ export const SettingsDialog = ({
 							updateSettings({ saveOnHide: e.target.checked })
 						}
 					/>{" "}
-					Save when app loses focus
+					Save and exit when app loses focus
 				</label>
 				<div className="settings-note">
-					Flushes the game to local storage when you switch tabs or
-					hide the window.
+					When you switch tabs or hide the window, the game saves and
+					quits. Returning to the tab reloads and continues from the
+					save.
 				</div>
 			</div>
 
