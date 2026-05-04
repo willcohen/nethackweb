@@ -98,6 +98,32 @@ export const App = () => {
 	const [isNumLock, setIsNumLock] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [showInfo, setShowInfo] = useState(false);
+	const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+	useEffect(() => {
+		const root = document.documentElement;
+		if (!keyboardOpen) {
+			root.style.removeProperty("--bar-top");
+			return;
+		}
+		const vv = window.visualViewport;
+		const barEl = () =>
+			document.querySelector<HTMLElement>(".kbd-bar");
+		const update = () => {
+			if (!vv) return;
+			const barHeight = barEl()?.offsetHeight ?? 60;
+			const top = vv.offsetTop + vv.height - barHeight;
+			root.style.setProperty("--bar-top", `${top}px`);
+		};
+		vv?.addEventListener("resize", update);
+		vv?.addEventListener("scroll", update);
+		return () => {
+			vv?.removeEventListener("resize", update);
+			vv?.removeEventListener("scroll", update);
+			root.style.removeProperty("--bar-top");
+		};
+	}, [keyboardOpen]);
+
 	const [settings, setSettings] = useState<Settings>(loadSettings);
 	const updateSettings = (patch: Partial<Settings>) => {
 		setSettings((prev) => {
@@ -158,10 +184,12 @@ export const App = () => {
 				</div>
 				{state.prompt && <Prompt prompt={state.prompt} />}
 				<TemporaryWindows state={state} />
-				<StatusWindow
-					status={state.status}
-					compactStatus={settings.compactStatus}
-				/>
+				{!keyboardOpen && (
+					<StatusWindow
+						status={state.status}
+						compactStatus={settings.compactStatus}
+					/>
+				)}
 				<MobileInputs
 					triggerOnPointerDown={state.prompt?.type == "poskey"}
 					isNumLock={isNumLock}
@@ -169,22 +197,28 @@ export const App = () => {
 					gridButtons={settings.gridButtons}
 					scrollButtons={settings.scrollButtons}
 					customButtons={settings.customButtons}
-					shiftMode={settings.shiftMode}
+					modifierMode={settings.modifierMode}
+					keyboardOpen={keyboardOpen}
+					setKeyboardOpen={setKeyboardOpen}
 				/>
-				<button
-					className="gear-button"
-					aria-label="Settings"
-					onClick={() => setShowSettings(true)}
-				>
-					⚙
-				</button>
-				<button
-					className="info-button"
-					aria-label="About"
-					onClick={() => setShowInfo(true)}
-				>
-					ⓘ
-				</button>
+				{!keyboardOpen && (
+					<>
+						<button
+							className="gear-button"
+							aria-label="Settings"
+							onClick={() => setShowSettings(true)}
+						>
+							⚙
+						</button>
+						<button
+							className="info-button"
+							aria-label="About"
+							onClick={() => setShowInfo(true)}
+						>
+							ⓘ
+						</button>
+					</>
+				)}
 				{showInfo && (
 					<Modal title="About" onClose={() => setShowInfo(false)}>
 						<Footer />

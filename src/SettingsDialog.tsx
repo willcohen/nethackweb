@@ -127,19 +127,20 @@ export const SettingsDialog = ({
 				<label>
 					<input
 						type="checkbox"
-						checked={settings.shiftMode === "on"}
+						checked={settings.modifierMode === "on"}
 						onChange={(e) =>
 							updateSettings({
-								shiftMode: e.target.checked ? "on" : "off",
+								modifierMode: e.target.checked ? "on" : "off",
 							})
 						}
 					/>{" "}
-					Show shift button
+					Show modifier buttons
 				</label>
 				<div className="settings-note">
-					Tap once to arm shift for one direction. Double-tap to lock
-					(caps lock); tap again to release. Hardware Shift on a
-					keyboard always works regardless.
+					Adds on-screen Shift, Meta, and Ctrl toggles. Tap once to
+					arm for one keystroke; double-tap to lock; tap again to
+					release. Hardware modifiers on a keyboard always work
+					regardless.
 				</div>
 			</div>
 

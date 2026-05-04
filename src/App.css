@@ -13,6 +13,14 @@
 	touch-action: none;
 }
 
+@media (max-width: 430px) {
+	:root {
+		--cell-size: 36px;
+		--dir-size: 180px;
+		--main-gap: 6px;
+	}
+}
+
 * {
 	box-sizing: border-box;
 }
@@ -46,7 +54,8 @@ body {
 	display: grid;
 	grid: auto minmax(0, min-content) auto auto auto / 1fr;
 	place-items: center;
-	max-height: 100dvh;
+	align-content: start;
+	height: 100dvh;
 	width: min(100vw, calc(80ch + 4 * var(--padding)));
 	padding: var(--padding);
 	padding-top: max(var(--padding), env(safe-area-inset-top));
@@ -353,7 +362,13 @@ kbd {
 	padding: var(--padding) 0;
 	gap: var(--main-gap);
 
-	.shift-button {
+	.mod-column {
+		display: flex;
+		flex-direction: column;
+		gap: calc(var(--cell-size) / 3);
+	}
+
+	.mod-button {
 		min-width: var(--cell-size);
 		width: var(--cell-size);
 		height: var(--cell-size);
@@ -377,6 +392,11 @@ kbd {
 			background-color: #336;
 			border-color: #ddddff;
 			box-shadow: inset 0 0 0 1px #ddddff;
+		}
+
+		&.kbd-button.active {
+			background-color: #225;
+			border-color: #aaaaff;
 		}
 	}
 
@@ -595,6 +615,78 @@ kbd {
 			--inactive-bg-color: #833;
 			--active-bg-color: #a55;
 		}
+	}
+}
+
+.kbd-bar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	top: var(--bar-top, 200px);
+	z-index: 12;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 10px;
+	background-color: #1e0c33;
+	border-top: 1px solid #7474ff;
+	box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5);
+
+	.mod-button {
+		flex-shrink: 0;
+		min-width: var(--cell-size);
+		width: var(--cell-size);
+		height: var(--cell-size);
+		padding: 0;
+		border: 1px solid #7474ff;
+		border-radius: 5px;
+		background-color: #140628;
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		user-select: none;
+		font-size: 1em;
+		touch-action: manipulation;
+
+		&.armed {
+			background-color: #225;
+			border-color: #aaaaff;
+		}
+
+		&.locked {
+			background-color: #336;
+			border-color: #ddddff;
+			box-shadow: inset 0 0 0 1px #ddddff;
+		}
+	}
+
+	.kbd-bar-field {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 4px 8px;
+		border: 1px solid #7474ff;
+		border-radius: 5px;
+		background-color: #140628;
+	}
+
+	.kbd-bar-prefix {
+		color: #aaaaff;
+		font-weight: bold;
+		flex-shrink: 0;
+	}
+
+	.kbd-bar-input {
+		flex: 1;
+		min-width: 0;
+		background: transparent;
+		color: inherit;
+		border: none;
+		outline: none;
+		font: inherit;
+		padding: 0;
 	}
 }
 

@@ -1,7 +1,54 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useOnInput } from "./useNethack";
 import { ESC } from "./nethack";
 import type { CustomButton, Settings } from "./settings";
+
+type ModState = "idle" | "armed" | "locked";
+
+const useModState = () => {
+	const [state, setState] = useState<ModState>("idle");
+	const lastTap = useRef(0);
+	const tap = () => {
+		const now = Date.now();
+		setState((prev) => {
+			if (prev === "idle") {
+				lastTap.current = now;
+				return "armed";
+			}
+			if (prev === "armed") {
+				if (now - lastTap.current < 350) return "locked";
+				return "idle";
+			}
+			return "idle";
+		});
+	};
+	const consume = () => {
+		setState((prev) => (prev === "armed" ? "idle" : prev));
+	};
+	return { state, tap, consume };
+};
+
+const applyModifiers = (
+	ch: string,
+	shift: boolean,
+	meta: boolean,
+	ctrl: boolean,
+): string => {
+	let c = ch;
+	if (ctrl) {
+		const code = c.toLowerCase().charCodeAt(0);
+		if (code >= 0x60 && code <= 0x7f) {
+			c = String.fromCharCode(code & 0x1f);
+		}
+	} else if (shift) {
+		c = c.toUpperCase();
+	}
+	if (meta) {
+		c = String.fromCharCode(c.charCodeAt(0) | 0x80);
+	}
+	return c;
+};
 
 type Input = string | { input: string; label: string };
 
@@ -229,6 +276,54 @@ const MobileDirInput = ({
 	);
 };
 
+const isTouchDevice = () =>
+	typeof window !== "undefined" &&
+	window.matchMedia("(pointer: coarse)").matches;
+
+const ModButton = ({
+	label,
+	state,
+	onTap,
+	ariaLabel,
+	lockedLabel,
+}: {
+	label: string;
+	state: ModState;
+	onTap: () => void;
+	ariaLabel: string;
+	lockedLabel?: string;
+}) => {
+	const lastTapRef = useRef(0);
+	const handleTap = (
+		e:
+			| React.TouchEvent<HTMLDivElement>
+			| React.MouseEvent<HTMLDivElement>,
+	) => {
+		e.preventDefault();
+		const now = Date.now();
+		// Dedupe: iOS fires both touchstart and synthetic mousedown for
+		// the same physical tap. Ignore the second event.
+		if (now - lastTapRef.current < 200) return;
+		lastTapRef.current = now;
+		onTap();
+	};
+	return (
+		<div
+			className={
+				"mod-button" +
+				(state === "armed" ? " armed" : "") +
+				(state === "locked" ? " locked" : "")
+			}
+			aria-label={ariaLabel}
+			aria-pressed={state !== "idle"}
+			onTouchStart={handleTap}
+			onMouseDown={handleTap}
+		>
+			{state === "locked" && lockedLabel ? lockedLabel : label}
+		</div>
+	);
+};
+
 export const MobileInputs = ({
 	triggerOnPointerDown,
 	isNumLock,
@@ -236,7 +331,9 @@ export const MobileInputs = ({
 	gridButtons,
 	scrollButtons,
 	customButtons,
-	shiftMode,
+	modifierMode,
+	keyboardOpen,
+	setKeyboardOpen,
 }: {
 	triggerOnPointerDown: boolean;
 	isNumLock: boolean;
@@ -244,38 +341,68 @@ export const MobileInputs = ({
 	gridButtons: string[];
 	scrollButtons: string[];
 	customButtons: CustomButton[];
-	shiftMode: Settings["shiftMode"];
+	modifierMode: Settings["modifierMode"];
+	keyboardOpen: boolean;
+	setKeyboardOpen: (open: boolean) => void;
 }) => {
 	const onInput = useOnInput();
 	const gridInputs = resolveButtons(gridButtons, customButtons);
 	const scrollInputs = resolveButtons(scrollButtons, customButtons);
-	const [shiftState, setShiftState] = useState<"idle" | "armed" | "locked">(
-		"idle",
-	);
-	const lastShiftTapRef = useRef(0);
-	const shiftActive = shiftState !== "idle";
+	const shift = useModState();
+	const meta = useModState();
+	const ctrl = useModState();
+	const shiftActive = shift.state !== "idle";
+	const metaActive = meta.state !== "idle";
+	const ctrlActive = ctrl.state !== "idle";
 
-	const handleShiftTap = () => {
-		const now = Date.now();
-		setShiftState((prev) => {
-			if (prev === "idle") {
-				lastShiftTapRef.current = now;
-				return "armed";
-			}
-			if (prev === "armed") {
-				if (now - lastShiftTapRef.current < 350) return "locked";
-				return "idle";
-			}
-			return "idle";
-		});
+	const showModifiers = modifierMode === "on";
+	const [touchDevice] = useState(isTouchDevice);
+
+	const captureRef = useRef<HTMLInputElement>(null);
+
+	const consumeArmed = () => {
+		shift.consume();
+		meta.consume();
+		ctrl.consume();
+	};
+
+	const dispatchChar = (ch: string) => {
+		onInput(applyModifiers(ch, shiftActive, metaActive, ctrlActive));
+		consumeArmed();
 	};
 
 	const dispatchDir = (input: string) => {
 		const isDir = "hjklyubn".includes(input);
 		const out = shiftActive && isDir ? input.toUpperCase() : input;
 		onInput(out);
-		if (shiftState === "armed" && isDir) setShiftState("idle");
+		if (isDir) shift.consume();
 	};
+
+	const toggleKeyboard = () => {
+		const el = captureRef.current;
+		if (keyboardOpen) {
+			el?.blur();
+			setKeyboardOpen(false);
+		} else {
+			// Pre-position the bar near the top of the layout so it is
+			// guaranteed to be inside the visual viewport when iOS
+			// evaluates the focus and decides whether to auto-scroll.
+			// App.tsx's visualViewport listener moves the bar down to
+			// just above the keyboard once iOS reports the real
+			// viewport height.
+			document.documentElement.style.setProperty(
+				"--bar-top",
+				"200px",
+			);
+			flushSync(() => setKeyboardOpen(true));
+			el?.focus();
+		}
+	};
+
+	const modifierPrefix =
+		(shiftActive ? "⇧" : "") +
+		(ctrlActive ? "^" : "") +
+		(metaActive ? "M-" : "");
 
 	const dispatch = (rb: ResolvedButton) => {
 		if (rb.action.kind === "input") {
@@ -310,7 +437,10 @@ export const MobileInputs = ({
 
 	return (
 		<>
-			<div className="main-inputs">
+			<div
+				className="main-inputs"
+				style={keyboardOpen ? { display: "none" } : undefined}
+			>
 				<div className="shortcut-inputs">
 					{(isNumLock ? numberInputs : gridInputs).map((rb, i) => (
 						<div
@@ -333,18 +463,44 @@ export const MobileInputs = ({
 						{"123"}
 					</div>
 				</div>
-				{shiftMode === "on" && (
-					<div
-						className={
-							"shift-button" +
-							(shiftState === "armed" ? " armed" : "") +
-							(shiftState === "locked" ? " locked" : "")
-						}
-						aria-label="Shift"
-						aria-pressed={shiftActive}
-						onClick={handleShiftTap}
-					>
-						{shiftState === "locked" ? "⇑" : "↑"}
+				{(showModifiers || touchDevice) && (
+					<div className="mod-column">
+						{showModifiers && (
+							<>
+								<ModButton
+									label="↑"
+									lockedLabel="⇑"
+									state={shift.state}
+									onTap={shift.tap}
+									ariaLabel="Shift"
+								/>
+								<ModButton
+									label="M"
+									state={meta.state}
+									onTap={meta.tap}
+									ariaLabel="Meta"
+								/>
+								<ModButton
+									label="^"
+									state={ctrl.state}
+									onTap={ctrl.tap}
+									ariaLabel="Ctrl"
+								/>
+							</>
+						)}
+						{touchDevice && (
+							<div
+								className={
+									"mod-button kbd-button" +
+									(keyboardOpen ? " active" : "")
+								}
+								aria-label="Show keyboard"
+								aria-pressed={keyboardOpen}
+								onClick={toggleKeyboard}
+							>
+								{"⌨"}
+							</div>
+						)}
 					</div>
 				)}
 				<MobileDirInput
@@ -353,6 +509,83 @@ export const MobileInputs = ({
 					shiftActive={shiftActive}
 				/>
 			</div>
+			{touchDevice && keyboardOpen && (
+				<div className="kbd-bar">
+					<ModButton
+						label="↑"
+						lockedLabel="⇑"
+						state={shift.state}
+						onTap={shift.tap}
+						ariaLabel="Shift"
+					/>
+					<ModButton
+						label="M"
+						state={meta.state}
+						onTap={meta.tap}
+						ariaLabel="Meta"
+					/>
+					<ModButton
+						label="^"
+						state={ctrl.state}
+						onTap={ctrl.tap}
+						ariaLabel="Ctrl"
+					/>
+					<div className="kbd-bar-field">
+						{modifierPrefix && (
+							<span className="kbd-bar-prefix">
+								{modifierPrefix}
+							</span>
+						)}
+						<input
+							ref={captureRef}
+							className="kbd-bar-input"
+							type="text"
+							autoComplete="off"
+							autoCorrect="off"
+							autoCapitalize="none"
+							spellCheck="false"
+							placeholder="type to send"
+							value=""
+							autoFocus
+							onBlur={() => setKeyboardOpen(false)}
+							onChange={(e) => {
+								for (const ch of e.target.value) {
+									dispatchChar(ch);
+								}
+							}}
+							onKeyDown={(e) => {
+								e.stopPropagation();
+								if (e.key === "Enter") {
+									e.preventDefault();
+									onInput("\r");
+									consumeArmed();
+								} else if (e.key === "Backspace") {
+									e.preventDefault();
+									onInput("\b");
+									consumeArmed();
+								} else if (e.key === "Escape") {
+									e.preventDefault();
+									onInput(ESC);
+									consumeArmed();
+									setKeyboardOpen(false);
+								}
+							}}
+						/>
+					</div>
+					<div
+						className="mod-button kbd-dismiss"
+						aria-label="Dismiss keyboard"
+						onTouchStart={(e) => e.preventDefault()}
+						onMouseDown={(e) => {
+							e.preventDefault();
+							setKeyboardOpen(false);
+						}}
+						onClick={() => setKeyboardOpen(false)}
+					>
+						{"×"}
+					</div>
+				</div>
+			)}
 			<div
 				ref={scrollRef}
 				className={
@@ -360,6 +593,7 @@ export const MobileInputs = ({
 					(fadeLeft ? " fade-left" : "") +
 					(fadeRight ? " fade-right" : "")
 				}
+				style={keyboardOpen ? { display: "none" } : undefined}
 			>
 				{scrollInputs.map((rb, i) => (
 					<div

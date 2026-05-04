@@ -15,7 +15,7 @@ export type Settings = {
 	gridButtons: string[];
 	scrollButtons: string[];
 	customButtons: CustomButton[];
-	shiftMode: "off" | "on";
+	modifierMode: "off" | "on";
 };
 
 export const newCustomButtonId = (): string => {
@@ -50,7 +50,7 @@ const defaults = (): Settings => ({
 		"help", "see-all", "discoveries", "options", "attributes", "esc",
 	],
 	customButtons: [],
-	shiftMode:
+	modifierMode:
 		window.matchMedia("(pointer: coarse)").matches ? "on" : "off",
 });
 
@@ -60,10 +60,12 @@ export const loadSettings = (): Settings => {
 	try {
 		const stored = JSON.parse(raw) as Partial<Settings> & {
 			shiftMode?: string;
+			modifierMode?: string;
 		};
 		const merged = { ...defaults(), ...stored, version: 1 } as Settings;
-		if (stored.shiftMode && stored.shiftMode !== "off") {
-			merged.shiftMode = "on";
+		const legacy = stored.modifierMode ?? stored.shiftMode;
+		if (legacy !== undefined) {
+			merged.modifierMode = legacy === "off" ? "off" : "on";
 		}
 		return merged;
 	} catch {
