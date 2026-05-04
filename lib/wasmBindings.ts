@@ -9,13 +9,16 @@ export const runNethackWasm = async (cb, Module = {}) => {
 	globalThis.nethackCallback = cb;
 
 	Module.onRuntimeInitialized = () => {
+		// Swallow ExitStatus rejection: when NetHack exits (death/quit/save-on-hide),
+		// emscripten throws ExitStatus through the asyncified call frame, rejecting
+		// this promise. Without the catch it surfaces as an unhandled rejection.
 		Module.ccall(
 			"shim_graphics_set_callback",
 			null,
 			["string"],
 			["nethackCallback"],
 			{ async: true },
-		);
+		).catch(() => {});
 	};
 
 	await createModule(Module);

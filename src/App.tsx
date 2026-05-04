@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "@fontsource/dejavu-mono";
 
 import "./App.css";
@@ -86,7 +86,15 @@ export const App = () => {
 		};
 	}, []);
 
-	const [state, onInput] = useNethack();
+	const [state, onInput, restartNethack] = useNethack();
+	// In-place restart: drop the old wasm + NetHack instance, boot a fresh
+	// one. Used by both Play again (game-end) and the save-on-hide auto-resume
+	// path. The save (if any) is already persisted to IDBFS by the prior run's
+	// exitNhwindows shim, so the new wasm's preRun syncfs picks it up.
+	const restart = useCallback(() => {
+		sentEofRef.current = false;
+		restartNethack();
+	}, [restartNethack]);
 	const [isNumLock, setIsNumLock] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [showInfo, setShowInfo] = useState(false);
@@ -121,22 +129,22 @@ export const App = () => {
 		return () => document.removeEventListener("visibilitychange", handler);
 	}, [settings.saveOnHide, onInput]);
 
-	// Wait for the save to actually persist before reloading; reloading
+	// Wait for the save to actually persist before restarting; restarting
 	// straight from visibilitychange races the in-flight IDBFS write.
 	useEffect(() => {
 		if (!sentEofRef.current || !state.savedAndExited) return;
 		if (document.visibilityState === "visible") {
-			window.location.reload();
+			restart();
 			return;
 		}
 		const handler = () => {
 			if (document.visibilityState === "visible") {
-				window.location.reload();
+				restart();
 			}
 		};
 		document.addEventListener("visibilitychange", handler);
 		return () => document.removeEventListener("visibilitychange", handler);
-	}, [state.savedAndExited]);
+	}, [state.savedAndExited, restart]);
 	return (
 		<OnInputContext.Provider value={onInput}>
 			<main>
@@ -185,7 +193,7 @@ export const App = () => {
 				{state.gameEnded && (
 					<button
 						className="play-again-button"
-						onClick={() => window.location.reload()}
+						onClick={restart}
 					>
 						Play again
 					</button>

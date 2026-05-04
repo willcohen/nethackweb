@@ -772,12 +772,21 @@ export class NetHack implements NetHackInterface {
 	}
 }
 
-let nethack: NetHack;
+let nethack: NetHack | undefined;
 export const startNetHack = (onChange: (nethack: NetHack) => void) => {
 	if (nethack) {
-		nethack.onChange = () => onChange(nethack);
+		nethack.onChange = () => onChange(nethack!);
 	} else {
-		nethack = new NetHack(() => onChange(nethack));
+		nethack = new NetHack(() => onChange(nethack!));
 	}
 	return nethack;
+};
+
+// Drop the singleton and boot a fresh wasm + NetHack instance. The previous
+// wasm has already exited (death/quit/escape/ascend, or save-on-hide path)
+// by the time we get here, so we don't need to tear it down explicitly —
+// just stop holding a reference and let GC clean up.
+export const restartNetHack = (onChange: (nethack: NetHack) => void) => {
+	nethack = undefined;
+	return startNetHack(onChange);
 };
