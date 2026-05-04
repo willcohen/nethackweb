@@ -374,7 +374,7 @@ export class NetHack implements NetHackInterface {
 		});
 	}
 	constructor(public onChange: () => void) {
-		this.start("Fractal");
+		this.start("Adventurer");
 	}
 	isLoading = true;
 	nethackrc = nethackrcContents;
