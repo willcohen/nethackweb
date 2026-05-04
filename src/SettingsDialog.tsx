@@ -1,18 +1,19 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import nethackrcContents from "./nethackrc.txt?raw";
 import { Modal } from "./Modal";
-import { loadSettings, Settings } from "./settings";
 import {
-	INPUT_CATALOG,
-	INPUT_CATALOG_IDS,
-	ButtonDef,
-	catalogButtonChar,
+	CustomButton,
+	loadSettings,
+	newCustomButtonId,
+	Settings,
+} from "./settings";
+import {
+	allButtonIds,
+	buttonFullLabel,
+	buttonShortLabel,
 } from "./MobileInput";
 
 type SubModal = null | "rc" | "reset-rc" | "reset-all";
-
-const catalogLabel = (id: string) =>
-	INPUT_CATALOG.find((b: ButtonDef) => b.id === id)?.label ?? id;
 
 export const SettingsDialog = ({
 	settings,
@@ -27,18 +28,51 @@ export const SettingsDialog = ({
 }) => {
 	const [sub, setSub] = useState<SubModal>(null);
 
-	const toggleScroll = (id: string) => {
-		const present = settings.scrollButtons.includes(id);
-		if (present) {
-			updateSettings({
-				scrollButtons: settings.scrollButtons.filter((b) => b !== id),
-			});
-		} else {
-			const inserted = [...settings.scrollButtons, id].sort(
-				(a, b) => INPUT_CATALOG_IDS.indexOf(a) - INPUT_CATALOG_IDS.indexOf(b),
-			);
-			updateSettings({ scrollButtons: inserted });
-		}
+	const idOrder = allButtonIds(settings.customButtons);
+	const scrollAvailable = idOrder.filter(
+		(id) => !settings.scrollButtons.includes(id),
+	);
+
+	const removeScroll = (id: string) =>
+		updateSettings({
+			scrollButtons: settings.scrollButtons.filter((b) => b !== id),
+		});
+
+	const addScroll = (id: string) =>
+		updateSettings({ scrollButtons: [...settings.scrollButtons, id] });
+
+	const moveScroll = (id: string, dir: -1 | 1) => {
+		const list = [...settings.scrollButtons];
+		const i = list.indexOf(id);
+		const j = i + dir;
+		if (i < 0 || j < 0 || j >= list.length) return;
+		[list[i], list[j]] = [list[j], list[i]];
+		updateSettings({ scrollButtons: list });
+	};
+
+	const updateCustom = (id: string, patch: Partial<CustomButton>) => {
+		updateSettings({
+			customButtons: settings.customButtons.map((c) =>
+				c.id === id ? { ...c, ...patch } : c,
+			),
+		});
+	};
+
+	const addCustom = () => {
+		updateSettings({
+			customButtons: [
+				...settings.customButtons,
+				{ id: newCustomButtonId(), extcmd: "", label: "" },
+			],
+		});
+	};
+
+	const deleteCustom = (id: string) => {
+		updateSettings({
+			customButtons: settings.customButtons.filter((c) => c.id !== id),
+			gridButtons: settings.gridButtons.map((b) => (b === id ? "look" : b)),
+			scrollButtons: settings.scrollButtons.filter((b) => b !== id),
+		});
 	};
 
 	return (
@@ -122,9 +156,9 @@ export const SettingsDialog = ({
 								updateSettings({ gridButtons: updated });
 							}}
 						>
-							{INPUT_CATALOG_IDS.map((cid) => (
+							{idOrder.map((cid) => (
 								<option key={cid} value={cid}>
-									{catalogButtonChar(cid)}
+									{buttonShortLabel(cid, settings.customButtons)}
 								</option>
 							))}
 						</select>
@@ -134,17 +168,99 @@ export const SettingsDialog = ({
 
 			<div className="settings-row">
 				<div className="settings-label">Scroll buttons</div>
-				<div className="settings-toolbar-grid">
-					{INPUT_CATALOG_IDS.map((id) => (
-						<label key={id}>
-							<input
-								type="checkbox"
-								checked={settings.scrollButtons.includes(id)}
-								onChange={() => toggleScroll(id)}
-							/>{" "}
-							{catalogLabel(id)}
-						</label>
+				<div className="settings-note">
+					Reorder with the arrows, remove with ×. Add buttons from the
+					available list below.
+				</div>
+				<div className="settings-scroll-active">
+					{settings.scrollButtons.map((id, i) => (
+						<div key={id} className="settings-scroll-row">
+							<button
+								onClick={() => moveScroll(id, -1)}
+								disabled={i === 0}
+								aria-label="Move up"
+							>
+								↑
+							</button>
+							<button
+								onClick={() => moveScroll(id, 1)}
+								disabled={i === settings.scrollButtons.length - 1}
+								aria-label="Move down"
+							>
+								↓
+							</button>
+							<button
+								onClick={() => removeScroll(id)}
+								aria-label="Remove"
+							>
+								×
+							</button>
+							<span>
+								{buttonFullLabel(id, settings.customButtons)}
+							</span>
+						</div>
 					))}
+				</div>
+				{scrollAvailable.length > 0 && (
+					<>
+						<div className="settings-note">Available:</div>
+						<div className="settings-scroll-available">
+							{scrollAvailable.map((id) => (
+								<button
+									key={id}
+									onClick={() => addScroll(id)}
+								>
+									+ {buttonFullLabel(id, settings.customButtons)}
+								</button>
+							))}
+						</div>
+					</>
+				)}
+			</div>
+
+			<div className="settings-row">
+				<div className="settings-label">Custom extended commands</div>
+				<div className="settings-note">
+					Each row adds a toolbar button. The left field is the button
+					label shown in the toolbar; the right field is the extended
+					command name to send (no leading #), e.g. <code>pray</code>.
+				</div>
+				<div className="settings-custom-list">
+					{settings.customButtons.length > 0 && (
+						<div className="settings-custom-row settings-custom-header">
+							<div>Label</div>
+							<div>Extended command</div>
+							<div />
+						</div>
+					)}
+					{settings.customButtons.map((c) => (
+						<div key={c.id} className="settings-custom-row">
+							<input
+								type="text"
+								placeholder="label"
+								value={c.label}
+								onChange={(e) =>
+									updateCustom(c.id, { label: e.target.value })
+								}
+							/>
+							<input
+								type="text"
+								placeholder="extcmd"
+								value={c.extcmd}
+								onChange={(e) =>
+									updateCustom(c.id, {
+										extcmd: e.target.value
+											.toLowerCase()
+											.replace(/[^a-z]/g, ""),
+									})
+								}
+							/>
+							<button onClick={() => deleteCustom(c.id)}>
+								Delete
+							</button>
+						</div>
+					))}
+					<button onClick={addCustom}>Add custom command</button>
 				</div>
 			</div>
 

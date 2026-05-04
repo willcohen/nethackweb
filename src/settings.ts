@@ -1,5 +1,11 @@
 import nethackrcContents from "./nethackrc.txt?raw";
 
+export type CustomButton = {
+	id: string;
+	extcmd: string;
+	label: string;
+};
+
 export type Settings = {
 	version: 1;
 	playerName: string;
@@ -8,7 +14,16 @@ export type Settings = {
 	saveOnHide: boolean;
 	gridButtons: string[];
 	scrollButtons: string[];
+	customButtons: CustomButton[];
 	shiftMode: "off" | "sticky" | "hold";
+};
+
+export const newCustomButtonId = (): string => {
+	const rand =
+		typeof crypto !== "undefined" && "randomUUID" in crypto ?
+			crypto.randomUUID().slice(0, 8)
+		:	Math.random().toString(36).slice(2, 10);
+	return `custom-${rand}`;
 };
 
 const STORAGE_KEY = "nethackweb";
@@ -34,6 +49,7 @@ const defaults = (): Settings => ({
 		"quiver", "put-on", "takeoff", "remove", "open", "inven-type",
 		"help", "see-all", "discoveries", "options", "attributes", "esc",
 	],
+	customButtons: [],
 	shiftMode: "sticky",
 });
 

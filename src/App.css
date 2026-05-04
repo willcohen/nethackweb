@@ -494,6 +494,11 @@ kbd {
 	padding-top: 10px;
 	padding-bottom: 0;
 
+	& > .simple_input {
+		width: auto;
+		padding: 0 8px;
+	}
+
 	&::-webkit-scrollbar {
 		width: 0px;
 		height: 0px;
@@ -516,6 +521,7 @@ kbd {
 }
 
 .simple_input {
+	min-width: 40px;
 	width: 40px;
 	height: 40px;
 	--border-color: #7474ff;
@@ -714,6 +720,72 @@ kbd {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 	gap: 4px;
+}
+
+.settings-scroll-active {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 4px 0;
+}
+
+.settings-scroll-row {
+	display: grid;
+	grid-template-columns: auto auto auto 1fr;
+	gap: 4px;
+	align-items: center;
+}
+
+.settings-scroll-row button {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	font: inherit;
+	cursor: pointer;
+}
+
+.settings-scroll-row button:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.settings-scroll-available {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.settings-scroll-available button {
+	font: inherit;
+	cursor: pointer;
+	padding: 2px 8px;
+}
+
+.settings-custom-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.settings-custom-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto;
+	gap: 4px;
+	align-items: center;
+}
+
+.settings-custom-row input {
+	font: inherit;
+	background-color: transparent;
+	color: inherit;
+	border: 0.5px solid grey;
+	padding: 2px 4px;
+}
+
+.settings-custom-header {
+	font-size: 0.85em;
+	opacity: 0.7;
 }
 
 .settings-rc-textarea {

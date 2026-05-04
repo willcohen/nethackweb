@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useOnInput } from "./useNethack";
 import { ESC } from "./nethack";
+import type { CustomButton } from "./settings";
 
 type Input = string | { input: string; label: string };
 
@@ -8,6 +9,15 @@ const getLabel = (input: Input) =>
 	typeof input === "string" ? input : input.label;
 const getInput = (input: Input) =>
 	typeof input === "string" ? input : input.input;
+
+export type ResolvedAction =
+	| { kind: "input"; input: Input }
+	| { kind: "extcmd"; cmd: string };
+
+export type ResolvedButton = {
+	label: string;
+	action: ResolvedAction;
+};
 
 const control = (input: string) => ({
 	label: `^${input.toUpperCase()}`,
@@ -71,19 +81,63 @@ export const INPUT_CATALOG: ButtonDef[] = [
 
 const catalogMap = new Map(INPUT_CATALOG.map((b) => [b.id, b]));
 
-export const catalogButtonChar = (id: string) => {
+const customLabel = (custom: CustomButton) =>
+	custom.label || `#${custom.extcmd}`;
+
+export const buttonShortLabel = (
+	id: string,
+	customButtons: CustomButton[],
+) => {
 	const entry = catalogMap.get(id);
-	return entry ? getLabel(entry.input) : "?";
+	if (entry) return getLabel(entry.input);
+	const custom = customButtons.find((c) => c.id === id);
+	if (custom) return customLabel(custom);
+	return "?";
 };
 
-export const resolveButtons = (ids: string[]): Input[] =>
-	ids.map((id) => {
+export const buttonFullLabel = (
+	id: string,
+	customButtons: CustomButton[],
+) => {
+	const entry = catalogMap.get(id);
+	if (entry) return INPUT_CATALOG.find((b) => b.id === id)?.label ?? id;
+	const custom = customButtons.find((c) => c.id === id);
+	if (custom) return `${customLabel(custom)} (#${custom.extcmd})`;
+	return id;
+};
+
+export const resolveButtons = (
+	ids: string[],
+	customButtons: CustomButton[],
+): ResolvedButton[] =>
+	ids.flatMap((id) => {
 		const entry = catalogMap.get(id);
-		if (!entry) throw new Error(`Unknown button id: ${id}`);
-		return entry.input;
+		if (entry) {
+			return [
+				{
+					label: getLabel(entry.input),
+					action: { kind: "input", input: entry.input } as ResolvedAction,
+				},
+			];
+		}
+		const custom = customButtons.find((c) => c.id === id);
+		if (custom) {
+			return [
+				{
+					label: customLabel(custom),
+					action: { kind: "extcmd", cmd: custom.extcmd } as ResolvedAction,
+				},
+			];
+		}
+		return [];
 	});
 
 export const INPUT_CATALOG_IDS = INPUT_CATALOG.map((b) => b.id);
+
+export const allButtonIds = (customButtons: CustomButton[]) => [
+	...INPUT_CATALOG_IDS,
+	...customButtons.map((c) => c.id),
+];
 
 const SectorSVG = ({
 	start,
@@ -177,23 +231,33 @@ export const MobileInputs = ({
 	setIsNumLock,
 	gridButtons,
 	scrollButtons,
+	customButtons,
 }: {
 	triggerOnPointerDown: boolean;
 	isNumLock: boolean;
 	setIsNumLock: (isNumLock: boolean) => void;
 	gridButtons: string[];
 	scrollButtons: string[];
+	customButtons: CustomButton[];
 }) => {
 	const onInput = useOnInput();
-	const gridInputs = resolveButtons(gridButtons);
-	const scrollInputs = resolveButtons(scrollButtons);
+	const gridInputs = resolveButtons(gridButtons, customButtons);
+	const scrollInputs = resolveButtons(scrollButtons, customButtons);
 
-	const numberInputs: Input[] = [
+	const dispatch = (rb: ResolvedButton) => {
+		if (rb.action.kind === "input") {
+			onInput(getInput(rb.action.input));
+		} else {
+			onInput(["#", rb.action.cmd, { submit: true }]);
+		}
+	};
+
+	const numberInputs: ResolvedButton[] = [
 		"7", "8", "9",
 		"4", "5", "6",
 		"1", "2", "3",
 		";", "0",
-	];
+	].map((c) => ({ label: c, action: { kind: "input", input: c } }));
 
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [fadeLeft, setFadeLeft] = useState(false);
@@ -215,17 +279,15 @@ export const MobileInputs = ({
 		<>
 			<div className="main-inputs">
 				<div className="shortcut-inputs">
-					{(isNumLock ? numberInputs : gridInputs).map(
-						(input, i) => (
-							<div
-								key={i}
-								className="simple_input"
-								onClick={() => onInput(getInput(input))}
-							>
-								{getLabel(input)}
-							</div>
-						),
-					)}
+					{(isNumLock ? numberInputs : gridInputs).map((rb, i) => (
+						<div
+							key={i}
+							className="simple_input"
+							onClick={() => dispatch(rb)}
+						>
+							{rb.label}
+						</div>
+					))}
 					<div
 						className={
 							"simple_input numlock" +
@@ -248,13 +310,13 @@ export const MobileInputs = ({
 					(fadeRight ? " fade-right" : "")
 				}
 			>
-				{scrollInputs.map((input, i) => (
+				{scrollInputs.map((rb, i) => (
 					<div
 						key={i}
 						className={"simple_input" + (i === 0 ? " toggle" : "")}
-						onClick={() => onInput(getInput(input))}
+						onClick={() => dispatch(rb)}
 					>
-						{getLabel(input)}
+						{rb.label}
 					</div>
 				))}
 			</div>

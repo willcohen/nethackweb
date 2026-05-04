@@ -116,6 +116,7 @@ export const App = () => {
 					setIsNumLock={setIsNumLock}
 					gridButtons={settings.gridButtons}
 					scrollButtons={settings.scrollButtons}
+					customButtons={settings.customButtons}
 				/>
 				<button
 					className="gear-button"

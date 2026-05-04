@@ -391,16 +391,32 @@ export class NetHack implements NetHackInterface {
 	// Input
 
 	resolveInput: (input: Input) => void = () => {};
+	waitingForInput = false;
+	inputQueue: Input[] = [];
 
-	onInput(input: Input) {
-		this.resolveInput(input);
+	onInput(input: Input | Input[]) {
+		const items = Array.isArray(input) ? input : [input];
+		this.inputQueue.push(...items);
+		this.drainQueue();
+	}
+
+	private drainQueue() {
+		if (!this.waitingForInput) return;
+		if (this.inputQueue.length === 0) return;
+		const next = this.inputQueue.shift() as Input;
+		this.resolveInput(next);
 	}
 
 	async getInput(): Promise<Input> {
 		this.onChange();
+		if (this.inputQueue.length > 0) {
+			return this.inputQueue.shift() as Input;
+		}
+		this.waitingForInput = true;
 		return new Promise<Input>((resolve_) => {
 			this.resolveInput = (input: Input) => {
 				window.removeEventListener("keydown", callback);
+				this.waitingForInput = false;
 				resolve_(input);
 				this.resolveInput = () => {};
 			};
@@ -408,6 +424,7 @@ export class NetHack implements NetHackInterface {
 				const resolve = (input: Input) => {
 					e.preventDefault();
 					window.removeEventListener("keydown", callback);
+					this.waitingForInput = false;
 					resolve_(input);
 					this.resolveInput = () => {};
 				};
