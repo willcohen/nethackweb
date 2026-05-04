@@ -530,3 +530,146 @@ kbd {
 		}
 	}
 }
+
+/** Settings */
+
+.gear-button {
+	position: fixed;
+	top: var(--padding);
+	right: var(--padding);
+	z-index: 11;
+	width: 32px;
+	height: 32px;
+	background-color: #2228;
+	color: var(--fg);
+	border: 0.5px solid grey;
+	border-radius: 4px;
+	font-family: inherit;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	user-select: none;
+
+	&:hover {
+		background-color: #333a;
+	}
+}
+
+.modal-backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 20;
+	width: 100vw;
+	height: 100dvh;
+	background-color: #0008;
+	backdrop-filter: blur(0.7px);
+	display: grid;
+	place-items: center;
+	padding: var(--padding);
+}
+
+.modal {
+	background-color: #300a24f0;
+	border: 0.5px solid grey;
+	max-width: 100%;
+	max-height: 100%;
+	width: min(560px, 100%);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: calc(var(--padding) / 2) var(--padding);
+	border-bottom: 0.5px solid grey;
+
+	h2 {
+		margin: 0;
+		font-size: 1em;
+		font-weight: normal;
+	}
+}
+
+.modal-close {
+	background: transparent;
+	color: var(--fg);
+	border: none;
+	font-family: inherit;
+	font-size: 1.4em;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 6px;
+}
+
+.modal-body {
+	padding: var(--padding);
+	overflow: auto;
+}
+
+.settings-row {
+	margin-bottom: var(--padding);
+	padding-bottom: var(--padding);
+	border-bottom: 0.5px solid #555;
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	input[type="text"] {
+		width: 100%;
+		background-color: transparent;
+		color: inherit;
+		border: 0.5px solid grey;
+		font: inherit;
+		padding: 4px 6px;
+	}
+
+	button {
+		background-color: #2228;
+		color: var(--fg);
+		border: 0.5px solid grey;
+		font-family: inherit;
+		padding: 4px 10px;
+		cursor: pointer;
+
+		&:hover {
+			background-color: #333a;
+		}
+	}
+}
+
+.settings-label {
+	display: block;
+	margin-bottom: 4px;
+}
+
+.settings-note {
+	font-size: 0.85em;
+	color: #999;
+	margin-top: 4px;
+}
+
+.settings-radio {
+	margin-right: var(--padding);
+}
+
+.settings-toolbar-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 4px;
+}
+
+.settings-rc-textarea {
+	width: 100%;
+	min-height: 300px;
+	background-color: transparent;
+	color: inherit;
+	border: 0.5px solid grey;
+	font: inherit;
+	padding: 4px 6px;
+	resize: vertical;
+}

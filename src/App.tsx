@@ -12,6 +12,7 @@ import { TextWindow } from "./TextWindow";
 import { StatusWindow } from "./StatusWindow";
 import { MobileInputs } from "./MobileInput";
 import { CopyrightWindow } from "./CopyrightWindow";
+import { SettingsDialog } from "./SettingsDialog";
 
 const Window = ({ window_ }: { window_: NHWindow }) => {
 	if (!window_.displayed) {
@@ -82,6 +83,7 @@ export const App = () => {
 
 	const [state, onInput] = useNethack();
 	const [isNumLock, setIsNumLock] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
 	return (
 		<OnInputContext.Provider value={onInput}>
 			<main>
@@ -101,6 +103,16 @@ export const App = () => {
 					isNumLock={isNumLock}
 					setIsNumLock={setIsNumLock}
 				/>
+				<button
+					className="gear-button"
+					aria-label="Settings"
+					onClick={() => setShowSettings(true)}
+				>
+					⚙
+				</button>
+				{showSettings && (
+					<SettingsDialog onClose={() => setShowSettings(false)} />
+				)}
 			</main>
 		</OnInputContext.Provider>
 	);
