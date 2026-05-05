@@ -510,7 +510,16 @@ const convertMethods = (i: NetHackInterface, syncFs: () => Promise<void>) => ({
 	updatePositionbar: (features: string) => i.updatePositionbar(features),
 
 	// C. Window Utility Routines
-	initNhwindows: (/* argc, argv */) => i.initNhwindows(),
+	initNhwindows: (/* argc, argv */) => {
+		i.initNhwindows();
+		try {
+			navigator.storage?.persist?.().catch(() => {
+				// Ignore — storage persistence is best-effort.
+			});
+		} catch {
+			// navigator.storage unavailable in this context.
+		}
+	},
 	exitNhwindows: async (str: string) => {
 		await syncFs();
 		i.exitNhwindows(str);

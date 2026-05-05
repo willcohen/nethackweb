@@ -141,18 +141,26 @@ export const App = () => {
 	// shim awaits FS.syncfs to persist /save/ to IDBFS, then sets
 	// savedAndExited so the second effect can reload once the user returns.
 	useEffect(() => {
-		const handler = () => {
-			if (
-				document.visibilityState === "hidden" &&
-				settings.saveOnHide &&
-				!sentEofRef.current
-			) {
+		const triggerSave = () => {
+			if (settings.saveOnHide && !sentEofRef.current) {
 				sentEofRef.current = true;
 				onInput({ eof: true });
 			}
 		};
-		document.addEventListener("visibilitychange", handler);
-		return () => document.removeEventListener("visibilitychange", handler);
+		const onVisibilityChange = () => {
+			if (document.visibilityState === "hidden") {
+				triggerSave();
+			}
+		};
+		// pagehide is more reliable than visibilitychange when iOS suspends
+		// an installed PWA directly rather than backgrounding Safari.
+		const onPageHide = () => triggerSave();
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		window.addEventListener("pagehide", onPageHide);
+		return () => {
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+			window.removeEventListener("pagehide", onPageHide);
+		};
 	}, [settings.saveOnHide, onInput]);
 
 	// Wait for the save to actually persist before restarting; restarting
