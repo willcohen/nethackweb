@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useRef } from "react";
 
 // Stack of mounted modal ids in mount order; the last entry is the topmost
 // dialog. Used so a single browser back press only fires the topmost modal's
@@ -19,7 +19,9 @@ export const Modal = ({
 	// a fresh closure on every render; without this the effect would tear
 	// down and re-build on every re-render, flapping history.back/pushState.
 	const onCloseRef = useRef(onClose);
-	onCloseRef.current = onClose;
+	useLayoutEffect(() => {
+		onCloseRef.current = onClose;
+	});
 	useEffect(() => {
 		const id = nextModalId++;
 		modalStack.push(id);

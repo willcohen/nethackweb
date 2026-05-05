@@ -8,9 +8,8 @@ const useBlink = (isBlinking: boolean, delay: number) => {
 		if (!isBlinking) {
 			return;
 		}
-		setIsOn(true);
 		const timeout = setInterval(() => setIsOn((x) => !x), delay);
-		return () => clearTimeout(timeout);
+		return () => clearInterval(timeout);
 	}, [delay, isBlinking]);
 	return isBlinking && isOn;
 };
