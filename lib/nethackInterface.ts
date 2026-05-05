@@ -742,26 +742,88 @@ export const startNethack = (
 		LOG_RAW_CALLS = false,
 	} = {},
 ) => {
+	const isBonesFile = (name: string) => name.startsWith("bon");
+
+	const copyFileIfExists = (src: string, dst: string) => {
+		try {
+			const content = Module.FS.readFile(src);
+			Module.FS.writeFile(dst, content);
+		} catch {
+			// File doesn't exist yet -- first launch
+		}
+	};
+
+	const shuttleIntoSave = () => {
+		copyFileIfExists("/.nethackrc", "/save/.nethackrc");
+		copyFileIfExists("/record", "/save/record");
+		try {
+			const rootEntries = Module.FS.readdir("/");
+			for (const entry of rootEntries) {
+				if (isBonesFile(entry)) {
+					copyFileIfExists(`/${entry}`, `/save/${entry}`);
+				}
+			}
+		} catch {
+			// Root FS may not be readable yet
+		}
+		try {
+			const rootNames = new Set(
+				Module.FS.readdir("/").filter(isBonesFile),
+			);
+			const saveEntries = Module.FS.readdir("/save");
+			for (const entry of saveEntries) {
+				if (isBonesFile(entry) && !rootNames.has(entry)) {
+					Module.FS.unlink(`/save/${entry}`);
+				}
+			}
+		} catch {
+			// /save may be empty
+		}
+	};
+
+	const shuttleOutOfSave = (nethackrcFallback: string) => {
+		copyFileIfExists("/save/.nethackrc", "/.nethackrc");
+		try {
+			Module.FS.stat("/.nethackrc");
+		} catch {
+			Module.FS.writeFile("/.nethackrc", nethackrcFallback);
+		}
+		copyFileIfExists("/save/record", "/record");
+		try {
+			const saveEntries = Module.FS.readdir("/save");
+			for (const entry of saveEntries) {
+				if (isBonesFile(entry)) {
+					copyFileIfExists(`/save/${entry}`, `/${entry}`);
+				}
+			}
+		} catch {
+			// /save empty on first launch
+		}
+	};
+
 	const Module = {
 		arguments: commandLineArguments,
 		preRun: [
 			() => {
-				// Set up config file
-				if (interface_.nethackrc) {
-					Module.FS.writeFile("/.nethackrc", interface_.nethackrc);
-					Module.ENV.NETHACKOPTIONS = "@/.nethackrc";
-				}
-
-				// Set up save directory
+				// Mount IDBFS and pull persisted state. The shuttle into root
+				// has to wait until after runtime init: emscripten's
+				// --embed-file installs /record (and /perm, /logfile, etc.)
+				// during __wasm_call_ctors, and pre-existing files at those
+				// paths cause EEXIST. Deferring lets us overwrite the empty
+				// embedded files instead of racing them.
 				Module.FS.mkdir("/save");
 				Module.FS.mount(Module.IDBFS, {}, "/save");
-
-				// Sync filesystem from local storage
 				Module.addRunDependency("syncfs");
 				Module.FS.syncfs(true, (err) => {
 					if (err) {
 						throw err;
 					}
+					Module.ENV.NETHACKOPTIONS = "@/.nethackrc";
+					const previous = Module.onRuntimeInitialized;
+					Module.onRuntimeInitialized = () => {
+						shuttleOutOfSave(interface_.nethackrc);
+						if (previous) previous();
+					};
 					Module.removeRunDependency("syncfs");
 				});
 			},
@@ -772,9 +834,11 @@ export const startNethack = (
 		ENV: { NETHACKOPTIONS: string };
 		addRunDependency: typeof addRunDependency;
 		removeRunDependency: typeof removeRunDependency;
+		onRuntimeInitialized?: () => void;
 	};
 	const syncToLocalStorage = () =>
 		new Promise<void>((resolve, reject) => {
+			shuttleIntoSave();
 			FS.syncfs(false, (err) => {
 				if (err) {
 					reject(err);
