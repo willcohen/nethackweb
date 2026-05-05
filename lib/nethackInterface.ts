@@ -572,11 +572,11 @@ const convertMethods = (i: NetHackInterface, syncFs: () => Promise<void>) => ({
 			const { item, count, itemflags } = menuItem;
 			setValue(
 				p + i * size,
-				typeof item == "string" ? item.charCodeAt(0) : item,
+				typeof item == "string" ? item.charCodeAt(0) : (item as number),
 				"*",
 			);
 			setValue(p + i * size + 4, count, "i32");
-			setValue(p + i * size + 8, itemflags || 0, "i32");
+			setValue(p + i * size + 8, (itemflags as number) || 0, "i32");
 		});
 		return menuItems.length;
 	},

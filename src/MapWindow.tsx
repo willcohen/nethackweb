@@ -21,7 +21,7 @@ const GlyphC = memo(
 		isCliparound: boolean;
 		isNumLock: boolean;
 	}) => {
-		const ref = useRef<HTMLDivElement>(null);
+		const ref = useRef<HTMLSpanElement>(null);
 		useLayoutEffect(() => {
 			if (!ref.current || !isCliparound) {
 				return;
