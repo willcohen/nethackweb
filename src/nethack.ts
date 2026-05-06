@@ -222,11 +222,13 @@ export class NHTextWindow {
 	clear() {
 		this.text = [];
 	}
-	async display(getChar: () => Promise<string>) {
+	async display(getChar: () => Promise<string>, blocking: boolean) {
 		this.displayed = true;
-		this.blocking = true;
-		await getChar();
-		this.blocking = false;
+		if (blocking) {
+			this.blocking = true;
+			await getChar();
+			this.blocking = false;
+		}
 	}
 	putStr(str: string, attr: Attr) {
 		this.text.push({ str, attr });
@@ -404,10 +406,19 @@ export class NetHack implements NetHackInterface {
 		const items = Array.isArray(input) ? input : [input];
 		for (const item of items) {
 			if (typeof item === "object" && "eof" in item) {
+				// Save-on-hide path: must be queued so the next getInput
+				// can resolve to EOF even if wasm wasn't currently awaiting.
 				this.eofPending = true;
+				this.inputQueue.push(item);
+			} else if (this.waitingForInput) {
+				this.inputQueue.push(item);
 			}
+			// Ordinary chars when nothing awaits are dropped, matching
+			// pre-queue behavior. Otherwise a stray keypress between
+			// sequential blocking dialogs (death → vanquished → rip →
+			// topten, or msg → yn → menu) dismisses the next one before
+			// it can render.
 		}
-		this.inputQueue.push(...items);
 		this.drainQueue();
 	}
 
@@ -609,7 +620,7 @@ export class NetHack implements NetHackInterface {
 			win.putStr(line, "ATR_NONE");
 		}
 		console.log("DISPLAY");
-		await win.display(() => this.getChar());
+		await win.display(() => this.getChar(), true);
 		console.log("DONE");
 		this.destroyNhwindow(windowId);
 	}
