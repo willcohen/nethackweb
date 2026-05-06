@@ -373,9 +373,9 @@ kbd {
 		width: var(--cell-size);
 		height: var(--cell-size);
 		padding: 0;
-		border: 1px solid #7474ff;
+		border: 1px solid #ee7474;
 		border-radius: 5px;
-		background-color: #1e0c33;
+		background-color: #431e0c;
 		display: grid;
 		place-items: center;
 		cursor: pointer;
@@ -384,19 +384,19 @@ kbd {
 		touch-action: manipulation;
 
 		&.armed {
-			background-color: #225;
-			border-color: #aaaaff;
+			background-color: #622;
+			border-color: #ffaaaa;
 		}
 
 		&.locked {
-			background-color: #336;
-			border-color: #ddddff;
-			box-shadow: inset 0 0 0 1px #ddddff;
+			background-color: #833;
+			border-color: #ffdddd;
+			box-shadow: inset 0 0 0 1px #ffdddd;
 		}
 
 		&.kbd-button.active {
-			background-color: #225;
-			border-color: #aaaaff;
+			background-color: #622;
+			border-color: #ffaaaa;
 		}
 	}
 
@@ -648,15 +648,20 @@ kbd {
 		font-size: 1em;
 		touch-action: manipulation;
 
+		&:not(.kbd-dismiss) {
+			border-color: #ee7474;
+			background-color: #2a0e08;
+		}
+
 		&.armed {
-			background-color: #225;
-			border-color: #aaaaff;
+			background-color: #622;
+			border-color: #ffaaaa;
 		}
 
 		&.locked {
-			background-color: #336;
-			border-color: #ddddff;
-			box-shadow: inset 0 0 0 1px #ddddff;
+			background-color: #833;
+			border-color: #ffdddd;
+			box-shadow: inset 0 0 0 1px #ffdddd;
 		}
 	}
 
