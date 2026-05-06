@@ -565,18 +565,22 @@ const convertMethods = (i: NetHackInterface, syncFs: () => Promise<void>) => ({
 		if (!menuItems) {
 			return 0;
 		}
-		const size = 12;
+		// struct mi = anything (8) + long count (4) + unsigned itemflags (4).
+		// anything is 8 bytes because the union includes int64/uint64.
+		const size = 16;
 		const p = malloc(size * menuItems.length);
 		setValue(menuList, p, "*");
 		menuItems.forEach((menuItem, i) => {
 			const { item, count, itemflags } = menuItem;
+			const base = p + i * size;
 			setValue(
-				p + i * size,
+				base,
 				typeof item == "string" ? item.charCodeAt(0) : (item as number),
 				"*",
 			);
-			setValue(p + i * size + 4, count, "i32");
-			setValue(p + i * size + 8, (itemflags as number) || 0, "i32");
+			setValue(base + 4, 0, "i32");
+			setValue(base + 8, count, "i32");
+			setValue(base + 12, (itemflags as number) || 0, "i32");
 		});
 		return menuItems.length;
 	},
